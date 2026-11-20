@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Update all plugins",
+    "description": "Adds an Updates tab to the Plugins page that updates every plugin installed from an npm registry to its newest installable version in one click."
+  }
+}

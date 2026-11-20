@@ -1,0 +1,3 @@
+- insert:
+    - id: update-all
+      name: 'dsh-update-all'

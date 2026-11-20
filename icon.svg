@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none" role="img" aria-label="Update all plugins">
+  <path d="M25.07 9.57 A11 11 0 1 1 18 7" stroke="#3f78ee" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M18 3.2 L24 7 L18 10.8" stroke="#3f78ee" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="13.6" y="13.6" width="8.8" height="8.8" rx="2.2" stroke="#2a5bd7" stroke-width="2.4"/>
+  <path d="M13.6 18 H22.4" stroke="#2a5bd7" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

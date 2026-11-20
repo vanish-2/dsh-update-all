@@ -1,0 +1,49 @@
+{
+  "name": "dsh-update-all",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Adds an Updates tab to the Plugins page that checks every registry-installed plugin and updates them all in one click.",
+  "license": "MIT",
+  "author": "vanish-2",
+  "homepage": "https://github.com/vanish-2/dsh-update-all#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vanish-2/dsh-update-all.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vanish-2/dsh-update-all/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "plugin-manager"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "README.md",
+    "LICENSE",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
+    }
+  }
+}
