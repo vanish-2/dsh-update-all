@@ -26,8 +26,6 @@ window.__ModuleLoader__.load({
     /** Simplified Chinese dictionary and key source of truth. */
     const zh = {
       tab: '更新',
-      heading: '插件更新',
-      intro: '检查每个从 npm registry 安装的插件，有新版本时一键全部更新。',
       updateAll: '一键更新全部',
       updateAllCount: '一键更新全部（{count}）',
       update: '更新',
@@ -50,7 +48,6 @@ window.__ModuleLoader__.load({
       nothing: '没有从 registry 安装的插件，无需更新。',
       loadFailed: '读取插件列表失败：{reason}',
       checkedAt: '上次检查于 {time}',
-      runHint: '每个更新都会卸载并重新安装一个插件，该插件会短暂停用。',
       summaryRunning: '正在更新 {done}/{total}…',
       summaryDone: '更新完成：成功 {ok}，需重启 {restart}，失败 {fail}',
       cancelledSuffix: '已取消，其余插件未更新',
@@ -71,8 +68,6 @@ window.__ModuleLoader__.load({
     /** English dictionary; mirrors every key of `zh`. */
     const en = {
       tab: 'Updates',
-      heading: 'Plugin updates',
-      intro: 'Checks every plugin installed from an npm registry and updates them all in one click.',
       updateAll: 'Update all',
       updateAllCount: 'Update all ({count})',
       update: 'Update',
@@ -95,7 +90,6 @@ window.__ModuleLoader__.load({
       nothing: 'No plugin installed from a registry can be updated.',
       loadFailed: 'Could not read the plugin list: {reason}',
       checkedAt: 'Last checked {time}',
-      runHint: 'Each update removes and reinstalls one plugin, so that plugin stops briefly.',
       summaryRunning: 'Updating {done}/{total}…',
       summaryDone: 'Done — updated: {ok}, restart needed: {restart}, failed: {fail}',
       cancelledSuffix: 'cancelled; the remaining plugins were not updated',
@@ -116,18 +110,14 @@ window.__ModuleLoader__.load({
     /** Component-local styles; every color is a theme token, with a literal fallback for skins that omit one. */
     const CSS = `
 .dshua-root { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 8px; color: var(--dsw-alias-label-primary); }
-.dshua-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-.dshua-headtext { flex: 1 1 240px; min-width: 0; }
-.dshua-title { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.45; }
-.dshua-intro { margin: 3px 0 0; font-size: 12px; line-height: 1.55; color: var(--dsw-alias-label-secondary); }
-.dshua-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dshua-actionbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dshua-actionbar .dshua-status { flex: 1 1 160px; text-align: right; }
 .dshua-btn { height: 32px; padding: 0 13px; border-radius: var(--dsw-radius-sm, 8px); border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 13px; line-height: 1; cursor: pointer; transition: background-color 120ms ease, opacity 120ms ease; }
 .dshua-btn:hover:not([aria-disabled="true"]) { background: var(--dsw-alias-bg-layer-2); }
 .dshua-btn:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; }
 .dshua-btn[aria-disabled="true"] { opacity: .45; cursor: default; }
 .dshua-primary { border-color: transparent; background: var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary)); color: var(--dsw-alias-label-primary-inverted, #fff); font-weight: 500; }
 .dshua-primary:hover:not([aria-disabled="true"]) { background: var(--dsw-alias-button-primary-hover, var(--dsw-alias-brand-primary)); opacity: .92; }
-.dshua-hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--dsw-alias-label-secondary); }
 .dshua-status { min-height: 18px; font-size: 12px; line-height: 1.5; color: var(--dsw-alias-label-secondary); }
 .dshua-status[data-tone="error"] { color: var(--dsw-alias-state-error-primary); }
 .dshua-status[data-tone="warn"] { color: var(--dsw-alias-state-warn-primary); }
@@ -522,35 +512,30 @@ window.__ModuleLoader__.load({
 
           return h('section', { className: 'dshua-root', 'aria-busy': busy ? 'true' : 'false' },
             h('style', null, CSS),
-            h('header', { className: 'dshua-head' },
-              h('div', { className: 'dshua-headtext' },
-                h('h3', { className: 'dshua-title' }, translate('heading')),
-                h('p', { className: 'dshua-intro' }, translate('intro'))),
-              h('div', { className: 'dshua-actions' },
-                h('button', {
+            h('div', { className: 'dshua-actionbar' },
+              h('button', {
+                type: 'button',
+                className: 'dshua-btn',
+                'aria-disabled': busy || snapshot.phase === 'loading' ? 'true' : undefined,
+                onClick: () => { if (!busy && snapshot.phase !== 'loading') void updates.refresh() },
+              }, translate('recheck')),
+              h('button', {
+                type: 'button',
+                className: 'dshua-btn dshua-primary',
+                'aria-disabled': busy || count === 0 ? 'true' : undefined,
+                onClick: () => { if (!busy && count > 0) void updates.run(snapshot.packages.map(pkg => pkg.name)) },
+              }, snapshot.running
+                ? translate('updating')
+                : count > 0 ? translate('updateAllCount', { count }) : translate('updateAll')),
+              snapshot.running
+                ? h('button', {
                   type: 'button',
                   className: 'dshua-btn',
-                  'aria-disabled': busy || snapshot.phase === 'loading' ? 'true' : undefined,
-                  onClick: () => { if (!busy && snapshot.phase !== 'loading') void updates.refresh() },
-                }, translate('recheck')),
-                h('button', {
-                  type: 'button',
-                  className: 'dshua-btn dshua-primary',
-                  'aria-disabled': busy || count === 0 ? 'true' : undefined,
-                  onClick: () => { if (!busy && count > 0) void updates.run(snapshot.packages.map(pkg => pkg.name)) },
-                }, snapshot.running
-                  ? translate('updating')
-                  : count > 0 ? translate('updateAllCount', { count }) : translate('updateAll')),
-                snapshot.running
-                  ? h('button', {
-                    type: 'button',
-                    className: 'dshua-btn',
-                    'aria-disabled': snapshot.cancelled ? 'true' : undefined,
-                    onClick: () => { if (!snapshot.cancelled) void updates.cancel() },
-                  }, translate('cancel'))
-                  : null)),
-            h('p', { className: 'dshua-hint' }, translate('runHint')),
-            h('div', { className: 'dshua-status', 'data-tone': summary.tone, role: 'status', 'aria-live': 'polite' }, summary.text),
+                  'aria-disabled': snapshot.cancelled ? 'true' : undefined,
+                  onClick: () => { if (!snapshot.cancelled) void updates.cancel() },
+                }, translate('cancel'))
+                : null,
+              h('div', { className: 'dshua-status', 'data-tone': summary.tone, role: 'status', 'aria-live': 'polite' }, summary.text)),
             snapshot.phase === 'ready' && snapshot.packages.length === 0
               ? h('p', { className: 'dshua-empty' }, translate('nothing'))
               : h('ul', { className: 'dshua-list' }, snapshot.packages.map(row)))
