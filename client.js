@@ -23,6 +23,13 @@ window.__ModuleLoader__.load({
     /** This package, which never updates itself while it renders the tab. */
     const SELF = 'dsh-update-all'
 
+    /**
+     * How many plugin checks run at once. Each check already runs up to `versionLookupConcurrency` (4) registry reads
+     * inside the Host, and every one of those is a pnpm process, so this multiplies: 3 keeps a six-plugin check near
+     * two seconds without putting a dozen pnpm processes on the machine.
+     */
+    const CHECK_CONCURRENCY = 3
+
     /** Simplified Chinese dictionary and key source of truth. */
     const zh = {
       tab: '更新',
@@ -237,6 +244,19 @@ window.__ModuleLoader__.load({
       return `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`
     }
 
+    /** Run `worker` over `items` with at most `limit` in flight, settling when every item is done. */
+    async function mapLimit(items, limit, worker) {
+      let next = 0
+      const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (next < items.length) {
+          const index = next
+          next += 1
+          await worker(items[index], index)
+        }
+      })
+      await Promise.all(runners)
+    }
+
     /**
      * The run, kept outside the tab so a batch survives the tab being switched away and a returning tab reads the
      * same state. Every field is published as one snapshot; the render derives all text in the active locale.
@@ -305,17 +325,18 @@ window.__ModuleLoader__.load({
         patch({ checks: { ...state.checks, [name]: check } })
       }
 
-      /** Check every registry package one after another, so one action runs at most one registry lookup at a time. */
+      /** Check the registry packages a few at a time, so a large profile does not check them one by one. */
       const checkAll = async () => {
         if (state.running || state.checking) return
+        const packages = state.packages
         patch({
-          checking: true, checks: {}, results: {}, checkedAt: 0, checkDone: 0, checkTotal: state.packages.length,
+          checking: true, checks: {}, results: {}, checkedAt: 0, checkDone: 0, checkTotal: packages.length,
           queueTotal: 0, cancelled: false,
         })
-        for (const pkg of state.packages) {
+        await mapLimit(packages, CHECK_CONCURRENCY, async (pkg) => {
           await checkOne(pkg.name)
           patch({ checkDone: state.checkDone + 1 })
-        }
+        })
         patch({ checking: false, checkedAt: Date.now() })
       }
 
