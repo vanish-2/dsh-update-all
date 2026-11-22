@@ -25,10 +25,22 @@ window.__ModuleLoader__.load({
 
     /**
      * How many plugin checks run at once. Each check already runs up to `versionLookupConcurrency` (4) registry reads
-     * inside the Host, and every one of those is a pnpm process, so this multiplies: 3 keeps a six-plugin check near
-     * two seconds without putting a dozen pnpm processes on the machine.
+     * inside the Host and every one of those is a pnpm process, so the product is what matters. Measured on a 12-core
+     * machine, throughput stops improving past six concurrent checks, while three keeps a small profile from spending
+     * CPU on processes it does not need.
      */
-    const CHECK_CONCURRENCY = 3
+    const CHECK_CONCURRENCY_MIN = 3
+    const CHECK_CONCURRENCY_MAX = 6
+
+    /**
+     * The concurrency for a profile of `count` plugins: three for a small profile, one per three plugins above that,
+     * capped at six.
+     * @param {number} count - plugins to check.
+     * @returns {number} how many checks may run at once.
+     */
+    function checkConcurrency(count) {
+      return Math.min(CHECK_CONCURRENCY_MAX, Math.max(CHECK_CONCURRENCY_MIN, Math.ceil(count / 3)))
+    }
 
     /** Simplified Chinese dictionary and key source of truth. */
     const zh = {
@@ -333,7 +345,7 @@ window.__ModuleLoader__.load({
           checking: true, checks: {}, results: {}, checkedAt: 0, checkDone: 0, checkTotal: packages.length,
           queueTotal: 0, cancelled: false,
         })
-        await mapLimit(packages, CHECK_CONCURRENCY, async (pkg) => {
+        await mapLimit(packages, checkConcurrency(packages.length), async (pkg) => {
           await checkOne(pkg.name)
           patch({ checkDone: state.checkDone + 1 })
         })
