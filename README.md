@@ -6,14 +6,14 @@ One click replaces every plugin that the profile installed from an npm registry 
 
 ## Install
 
-In the DSH Web **Plugins → Add plugin** field, or from a shell:
+Two ways. The dialog field takes the bare spec; the `dsh plugin add` prefix belongs to the shell command only.
 
-```sh
-dsh plugin add github:vanish-2/dsh-update-all
-```
+- **Plugins → Add plugin**: paste `github:vanish-2/dsh-update-all` into the package field and press **Install**.
+  Without the pnpm `github:` shortcut, paste `git+https://github.com/vanish-2/dsh-update-all.git` instead.
+- **Shell**: `dsh plugin add github:vanish-2/dsh-update-all`
 
-The same string works as `git+https://github.com/vanish-2/dsh-update-all.git`. It needs a Web or Desktop profile,
-which serves the `pluginManager` Host Remotes this tab calls; nothing else is required and there is no configuration.
+It needs a Web or Desktop profile, which serves the `pluginManager` Host Remotes this tab calls; nothing else is
+required and there is no configuration.
 
 ## Use it
 
@@ -50,14 +50,13 @@ incompatible. Plugins added or removed elsewhere appear after you press **Check 
 
 ### 安装
 
-在 DSH Web 的「插件 → 添加插件」里填下面这行，或者在命令行执行：
+两种方式。**对话框里只填裸 spec**；`dsh plugin add` 前缀是命令行用的，填进对话框会报「无法识别这个包名或地址」。
 
-```sh
-dsh plugin add github:vanish-2/dsh-update-all
-```
+- **插件 → 添加插件**：包名字段填 `github:vanish-2/dsh-update-all`，点**安装**。如果 pnpm 不认 `github:` 短写，
+  改填 `git+https://github.com/vanish-2/dsh-update-all.git`。
+- **命令行**：`dsh plugin add github:vanish-2/dsh-update-all`
 
-也可以写成 `git+https://github.com/vanish-2/dsh-update-all.git`。需要 Web 或 Desktop profile（它调用的是 Host 的
-`pluginManager` Remote）；除此之外不需要任何配置。
+需要 Web 或 Desktop profile（它调用的是 Host 的 `pluginManager` Remote）；除此之外不需要任何配置。
 
 ### 用法
 
