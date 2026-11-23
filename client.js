@@ -318,7 +318,13 @@ window.__ModuleLoader__.load({
           // An update removes the installed package first, so a package that cannot be removed offers none.
           .filter(bundle => bundle.name !== SELF && bundle.update === 'registry' && typeof bundle.version === 'string'
             && bundle.installed === true && bundle.removable === true && bundle.availability !== 'installation')
-          .map(bundle => ({ name: bundle.name, version: bundle.version, enabled: bundle.enabled === true }))
+          .map(bundle => ({
+            name: bundle.name,
+            version: bundle.version,
+            enabled: bundle.enabled === true,
+            // The title the Plugins list shows for this bundle, in the form its locale files declare it.
+            title: bundle.meta === undefined ? undefined : bundle.meta.title,
+          }))
           .sort((left, right) => shortName(left.name).localeCompare(shortName(right.name)))
         patch({ packages, phase: 'ready', error: '' })
       }
@@ -491,10 +497,17 @@ window.__ModuleLoader__.load({
             return { tone: unchecked > 0 ? 'warn' : count > 0 ? 'brand' : 'success', text: `${found}${failedPart}${at}` }
           })()
 
+          /** The bundle's own title in the active language, so a row reads as the same name the Plugins list shows. */
+          const titleOf = (pkg) => {
+            const declared = pkg.title === undefined ? '' : ctx.locale.resolveText(pkg.title)
+            return declared || shortName(pkg.name)
+          }
+
           /** One row: the plugin, its versions, how it stands, and its own update action. */
           const row = (pkg) => {
             const check = snapshot.checks[pkg.name]
             const result = snapshot.results[pkg.name]
+            const title = titleOf(pkg)
             const candidate = newerCandidate(check && check.list)
             const blocked = blockedVersion(check && check.list)
             let tone
@@ -525,7 +538,7 @@ window.__ModuleLoader__.load({
             return h('li', { key: pkg.name, className: 'dshua-row' },
               h('div', { className: 'dshua-rowmain' },
                 h('div', { className: 'dshua-titlerow' },
-                  h('span', { className: 'dshua-name', title: pkg.name }, shortName(pkg.name)),
+                  h('span', { className: 'dshua-name', title: pkg.name }, title),
                   pkg.enabled ? null : h('span', { className: 'dshua-tag' }, translate('disabledTag'))),
                 h('span', { className: 'dshua-pkg' }, pkg.name)),
               h('span', { className: 'dshua-versions' },
@@ -537,7 +550,7 @@ window.__ModuleLoader__.load({
                 : h('button', {
                   type: 'button',
                   className: 'dshua-btn dshua-rowbutton',
-                  'aria-label': translate('rowUpdate', { name: shortName(pkg.name) }),
+                  'aria-label': translate('rowUpdate', { name: title }),
                   'aria-disabled': busy ? 'true' : undefined,
                   onClick: () => { if (!busy) void updates.run([pkg.name]) },
                 }, translate('update')))
