@@ -1,6 +1,6 @@
 {
   "name": "dsh-update-all",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Adds an Updates tab to the Plugins page that checks every registry-installed plugin and updates them all in one click.",
   "license": "MIT",
