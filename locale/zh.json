@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "一键更新插件",
-    "description": "在「插件」页面增加「更新」标签页，一键把从 npm registry 安装的插件更新到各自可安装的最新版本。"
+    "description": "一键更新从 npm 安装的插件。"
   }
 }
