@@ -144,6 +144,7 @@ window.__ModuleLoader__.load({
 .dshua-list { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .dshua-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-md, 10px); background: var(--dsw-alias-bg-layer-1); }
 .dshua-icon { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 6px; object-fit: contain; background: var(--dsw-alias-bg-layer-2); }
+.dshua-icon-fallback { display: inline-flex; align-items: center; justify-content: center; color: var(--dsw-alias-label-secondary); }
 .dshua-rowmain { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dshua-titlerow { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .dshua-name { font-size: 13px; font-weight: 500; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -539,7 +540,16 @@ window.__ModuleLoader__.load({
             }
             return h('li', { key: pkg.name, className: 'dshua-row' },
               pkg.icon === undefined
-                ? h('span', { className: 'dshua-icon', 'aria-hidden': 'true' })
+                ? h('span', { className: 'dshua-icon dshua-icon-fallback', 'aria-hidden': 'true' },
+                  h('svg', { viewBox: '0 0 16 16', width: 14, height: 14, fill: 'none' },
+                    h('path', {
+                      d: 'M8 1.9 13.5 5v6L8 14.1 2.5 11V5z', stroke: 'currentColor', 'stroke-width': 1.2,
+                      'stroke-linejoin': 'round',
+                    }),
+                    h('path', {
+                      d: 'M2.5 5 8 8.1 13.5 5M8 8.1v6', stroke: 'currentColor', 'stroke-width': 1.2,
+                      'stroke-linejoin': 'round',
+                    })))
                 : h('img', {
                   className: 'dshua-icon', src: pkg.icon, alt: '', width: 24, height: 24, loading: 'lazy',
                 }),
