@@ -143,6 +143,7 @@ window.__ModuleLoader__.load({
 .dshua-status[data-tone="success"] { color: var(--dsw-alias-state-success-primary); }
 .dshua-list { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .dshua-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-md, 10px); background: var(--dsw-alias-bg-layer-1); }
+.dshua-icon { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 6px; object-fit: contain; background: var(--dsw-alias-bg-layer-2); }
 .dshua-rowmain { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dshua-titlerow { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .dshua-name { font-size: 13px; font-weight: 500; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -322,8 +323,9 @@ window.__ModuleLoader__.load({
             name: bundle.name,
             version: bundle.version,
             enabled: bundle.enabled === true,
-            // The title the Plugins list shows for this bundle, in the form its locale files declare it.
+            // The title and icon the Plugins list shows for this bundle, as its own locale files declare them.
             title: bundle.meta === undefined ? undefined : bundle.meta.title,
+            icon: bundle.meta === undefined ? undefined : bundle.meta.icon,
           }))
           .sort((left, right) => shortName(left.name).localeCompare(shortName(right.name)))
         patch({ packages, phase: 'ready', error: '' })
@@ -536,6 +538,11 @@ window.__ModuleLoader__.load({
               text = translate('latest')
             }
             return h('li', { key: pkg.name, className: 'dshua-row' },
+              pkg.icon === undefined
+                ? h('span', { className: 'dshua-icon', 'aria-hidden': 'true' })
+                : h('img', {
+                  className: 'dshua-icon', src: pkg.icon, alt: '', width: 24, height: 24, loading: 'lazy',
+                }),
               h('div', { className: 'dshua-rowmain' },
                 h('div', { className: 'dshua-titlerow' },
                   h('span', { className: 'dshua-name', title: pkg.name }, title),
