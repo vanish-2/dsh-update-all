@@ -32,6 +32,10 @@ window.__ModuleLoader__.load({
     const CHECK_CONCURRENCY_MIN = 3
     const CHECK_CONCURRENCY_MAX = 6
 
+    /** How long after activation the first background check runs, and how often it repeats. */
+    const CHECK_START_DELAY_MS = 15 * 1000
+    const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
+
     /**
      * The concurrency for a profile of `count` plugins: three for a small profile, one per three plugins above that,
      * capped at six.
@@ -302,7 +306,6 @@ window.__ModuleLoader__.load({
       }
       let started = false
       const listeners = new Set()
-
       /** Publish one changed snapshot, then let mounted views read it. */
       const patch = (changes) => {
         state = { ...state, ...changes }
@@ -318,7 +321,7 @@ window.__ModuleLoader__.load({
         }
         const packages = answer.value
           // An update removes the installed package first, so a package that cannot be removed offers none.
-          .filter(bundle => bundle.name !== SELF && bundle.update === 'registry' && typeof bundle.version === 'string'
+          .filter(bundle => bundle.update === 'registry' && typeof bundle.version === 'string'
             && bundle.installed === true && bundle.removable === true && bundle.availability !== 'installation')
           .map(bundle => ({
             name: bundle.name,
@@ -377,13 +380,19 @@ window.__ModuleLoader__.load({
         else if (answer.lost) outcome = { status: 'failed', code: 'updateLost' }
         else outcome = { status: 'failed', code: 'updateRefused', params: { reason: refusedText(answer) } }
         patch({ results: { ...state.results, [name]: outcome }, requestId: null })
+        // Replacing this very bundle unloads the page that runs this store, so nothing is checked afterwards.
+        if (name === SELF) return
         await checkOne(name)
       }
 
       /** Replace the named plugins one Host operation at a time; the tab may come and go meanwhile. */
       const run = async (names) => {
-        const queue = names.filter(name => newerCandidate(state.checks[name] && state.checks[name].list))
+        const queue = names
+          .filter(name => newerCandidate(state.checks[name] && state.checks[name].list))
+          // This bundle is replaced last: the update takes its own page down before anything after it could run.
+          .sort((left, right) => (left === SELF ? 1 : 0) - (right === SELF ? 1 : 0))
         if (queue.length === 0 || state.running || state.checking) return
+        const replacesSelf = queue.includes(SELF)
         patch({
           results: {}, running: true, queueDone: 0, queueTotal: queue.length, cancelled: false, requestId: null,
         })
@@ -393,6 +402,7 @@ window.__ModuleLoader__.load({
           patch({ queueDone: state.queueDone + 1 })
         }
         patch({ running: false, requestId: null })
+        if (replacesSelf) return
         await load()
       }
 
@@ -403,6 +413,18 @@ window.__ModuleLoader__.load({
         if (requestId !== null) await settle(manager().cancelInstall(requestId))
       }
 
+      /** Read the list when it is missing, then check it when the last check is older than the interval. */
+      const autoCheck = async (force) => {
+        if (state.running || state.checking) return
+        if (state.phase !== 'ready') {
+          await load()
+          if (state.phase !== 'ready') return
+        }
+        const fresh = state.checkedAt > 0 && Date.now() - state.checkedAt < CHECK_INTERVAL_MS
+        if (!force && fresh) return
+        await checkAll()
+      }
+
       return {
         subscribe(listener) {
           listeners.add(listener)
@@ -411,17 +433,19 @@ window.__ModuleLoader__.load({
         getSnapshot() {
           return state
         },
-        /** Read the list and check it once per session, on the first tab that mounts. */
-        async start() {
-          if (started) return
+        /** The first view's check: load the list and check it unless a recent check already did. */
+        start() {
+          if (started) return Promise.resolve()
           started = true
-          await load()
-          if (state.phase === 'ready') await checkAll()
+          return autoCheck(false)
         },
+        /** A background check; the same interval the manual recheck uses. */
+        autoCheck,
         /** The recheck action: read the list again, then check it, so a failed read is recoverable in place. */
         async refresh() {
           await load()
-          if (state.phase === 'ready') await checkAll()
+          if (state.phase !== 'ready') return
+          await checkAll()
         },
         checkAll,
         run,
@@ -438,6 +462,17 @@ window.__ModuleLoader__.load({
         /** The Host namespace, read at call time so a replaced Remote service is not held stale. */
         const manager = () => ctx.remote.pluginManager
         const updates = createUpdates(manager)
+
+        // Check in the background, so opening the tab shows a result instead of starting one. The checks are the same
+        // ones the tab runs on demand; the interval only decides when they happen again.
+        ctx.effect(() => {
+          const first = setTimeout(() => { void updates.autoCheck(false).catch(() => {}) }, CHECK_START_DELAY_MS)
+          const repeat = setInterval(() => { void updates.autoCheck(false).catch(() => {}) }, CHECK_INTERVAL_MS)
+          return () => {
+            clearTimeout(first)
+            clearInterval(repeat)
+          }
+        }, 'update-all: background checks')
 
         /**
          * The Updates tab: one row per registry-installed plugin, its newer version, and the two actions.
